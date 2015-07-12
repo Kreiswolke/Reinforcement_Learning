@@ -25,6 +25,10 @@ class Rat:
         self.cell_centers[44:54,1] = np.arange(2.5,50,5)
         self.cell_centers[54:64,0] = np.ones((10))*57.5        
         self.cell_centers[54:64,1] = np.arange(2.5,50,5)
+        
+        self.rates = np.zeros(self.cell_centers.shape[0])
+        self.beta = 0
+        self.rat_position = np.zeros(2)
     
     def in_maze(self,x,y):
         if 50<=x<=60 and 0<=y<50:
@@ -56,6 +60,26 @@ class Rat:
         plt.ylim(0,60)
         plt.show()
         
+    def in_target(self,x,y):
+        if x<=20 and self.maze==True:
+            self.target = True
+        else:
+            self.target = False
+                
+        
+    def get_firing_rate(self, sigma = 5):
+        if self.beta == self.pickup:
+            #np.exp(-((self.cell_centers[0,:]- self.position[0])**2 \
+            #+ self.cell_centers[1,:]- self.position[1])**2)/(2*sigma**2))
+            for j in range(self.cell_centers.shape[0]):
+                self.rates[j] = np.exp(-((np.linalg.norm(self.rat_position - \
+                self.cell_centers[j,:])) ** 2) / (2 * (sigma ** 2)))
+
+        else:
+            self.rates = np.zeros_like(self.rates)
+            
+    def get_velocity(self):
+        return numpy.random.normal(3, 1.5)
 
 
        
