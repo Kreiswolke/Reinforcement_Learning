@@ -47,7 +47,11 @@ class Rat:
             self.target = False
             
     def plot_maze(self):
-        plt.plot(self.cell_centers[:,0],self.cell_centers[:,1],'ko')
+        plt.plot(self.cell_centers[:,0],self.cell_centers[:,1],'ko',markersize=0.8)
+        ax = plt.gca()
+        ax.axhspan(50,60,alpha=0.15,color='gray')
+        ax.axvspan(50,60,ymax=5/6,alpha=0.15,color='gray')
+        ax.axis('off')
         plt.xlim(0,110)
         plt.ylim(0,60)
         plt.show()
