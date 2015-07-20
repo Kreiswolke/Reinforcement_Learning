@@ -80,6 +80,23 @@ class Rat:
             
     def get_velocity(self):
         return numpy.random.normal(3, 1.5)
+        
+    def choose_population(self):
+        if self.pickup == False:
+            return self.w_0
+        elif self.pickup == True and self.target == False:
+            return self.w_1
+            
+    def init_run(self):
+        #Initiliaze Output layer
+        self.N_action = 4
+        self.output = np.zeros(self.N_action)
+        
+        #Initiliaze populations
+        self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
+        self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
+        
+        #Initialize Q-values???
 
 
        
