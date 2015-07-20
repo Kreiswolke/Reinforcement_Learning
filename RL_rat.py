@@ -98,9 +98,9 @@ class Rat:
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
         
         #Initialize Q-values
-        self.Q = np.zeros((N_action))
+        self.Q = np.zeros((self.N_action))
         
-        self.action_arr = np.linspace(2*np.pi/N_action , 2*np.pi , N_action)
+        self.action_arr = np.linspace(2*np.pi/self.N_action , 2*np.pi , self.N_action)
         self.action = 0
 
         
@@ -119,11 +119,11 @@ class Rat:
         # Choose a random initial position and make sure that it is not in the wall.
         # Needed here:
         # self.x_position, self.y_position, self._is_wall
-        self.x_position = random.randint(0,self.N)
-        self.y_position = random.randint(0,self.N)    
+        self.x_position = np.random.randint(0,self.N)
+        self.y_position = np.random.randint(0,self.N)    
         while self._is_wall(self.x_position,self.y_position):
-            self.x_position = random.randint(0,self.N)
-            self.y_position = random.randint(0,self.N) 
+            self.x_position = np.random.randint(0,self.N)
+            self.y_position = np.random.randint(0,self.N) 
         
         # Run the trial by choosing an action and repeatedly applying SARSA
         # until the reward has been reached.
@@ -146,11 +146,11 @@ class Rat:
 
     def choose_action(self):
         self.action_old = self.action
-        if random.random()<(1-self.epsilon):
+        if np.random.random()<(1-self.epsilon):
             self.action_idx = np.argmax(self.Q)
-            self.action = self.action_arr[action_idx]
+            self.action = self.action_arr[self.action_idx]
         else:
-            self.action_idx = random.randint(0,N_action-1)
+            self.action_idx = np.random.randint(0,self.N_action-1)
             self.action = self.action_arr[self.action_idx]
             
     def update_position(self):
