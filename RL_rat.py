@@ -34,6 +34,8 @@ class Rat:
         self.epsilon = 0.1
         
     def in_maze(self,x,y):
+        self.in_maze(self.rat_position[0], self.rat_position[0])
+
         if 50<=x<=60 and 0<=y<50:
             self.maze = True
         elif 0<=x<=110 and 50<=y<=60:
@@ -42,6 +44,8 @@ class Rat:
             self.maze = False
     
     def in_pickup(self,x,y):
+        
+        self.in_maze(self.rat_position[0], self.rat_position[0])
         if x<90 and self.maze==True:
             self.pickup = False
         else:
@@ -96,7 +100,7 @@ class Rat:
         #Initialize Q-values
         self.Q = np.zeros((N_action))
         
-        self.action_arr = np.linspace(2*np.pi/N_action,2*np.pi,N_action)
+        self.action_arr = np.linspace(2*np.pi/N_action , 2*np.pi , N_action)
         self.action = 0
 
         
@@ -147,6 +151,13 @@ class Rat:
             self.action = self.action_arr[action_idx]
         else:
             self.action_idx = random.randint(0,N_action-1)
-            self.action = self.action_arr[action_idx]
+            self.action = self.action_arr[self.action_idx]
+            
+    def update_position(self):
+        run_vector = np.array([np.cos(self.action), \
+                         np.sin(self.action)])
+                         
+        self.rat_position += run_vector*self.get_velocity()
+        self.rat_position = np.around(self.rat_position, decimals=1)
 
        
