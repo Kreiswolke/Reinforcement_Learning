@@ -29,7 +29,10 @@ class Rat:
         self.rates = np.zeros(self.cell_centers.shape[0])
         self.beta = 0
         self.rat_position = np.zeros(2)
-    
+        
+        self.action_idx = 0
+        self.epsilon = 0.1
+        
     def in_maze(self,x,y):
         if 50<=x<=60 and 0<=y<50:
             self.maze = True
@@ -61,7 +64,7 @@ class Rat:
         plt.ylim(0,60)
         plt.show()
         
-    def get_firing_rate(self, sigma = 5):
+    def update_firing_rate(self, sigma = 5):
         if self.beta == self.pickup:
             #np.exp(-((self.cell_centers[0,:]- self.position[0])**2 \
             #+ self.cell_centers[1,:]- self.position[1])**2)/(2*sigma**2))
@@ -90,7 +93,13 @@ class Rat:
         self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
         
-        #Initialize Q-values???
+        #Initialize Q-values
+        self.Q = np.zeros((N_action))
+        
+        self.action_arr = np.linspace(2*np.pi/N_action,2*np.pi,N_action)
+        self.action = 0
+
+        
         
     def run(self,nr_steps=10,nr_runs=1):
         self.trajectory = np.zeros((nr_steps,2))
@@ -116,16 +125,28 @@ class Rat:
         # until the reward has been reached.
         # Needed here:
         # self._choose_action, self._arrived,  self._update_state, self._update_Q
-        self._choose_action()
-        while self._arrived() == False:
-            self._update_state()
-            self._choose_action()
-            self._update_Q()
+        self.choose_action()
+        while self.in_target() == False:
+            self.update_state()
+            self.choose_action()
+            w = self.choose_population()
+            self.update_Q(w)
             
             latency += 1
       
         return latency
+        
+    def update_Q(self,w):
+        self.update_firing_rate()
+        self.Q = np.dot(w.T,self.rates)
 
-
+    def choose_action(self):
+        self.action_old = self.action
+        if random.random()<(1-self.epsilon):
+            self.action_idx = np.argmax(self.Q)
+            self.action = self.action_arr[action_idx]
+        else:
+            self.action_idx = random.randint(0,N_action-1)
+            self.action = self.action_arr[action_idx]
 
        
