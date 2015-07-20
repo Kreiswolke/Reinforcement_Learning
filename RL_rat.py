@@ -51,6 +51,7 @@ class Rat:
             self.target = False
             
     def plot_maze(self):
+        plt.figure(figsize=(5.5,3))
         plt.plot(self.cell_centers[:,0],self.cell_centers[:,1],'ko',markersize=0.8)
         ax = plt.gca()
         ax.axhspan(50,60,alpha=0.15,color='gray')
@@ -59,13 +60,6 @@ class Rat:
         plt.xlim(0,110)
         plt.ylim(0,60)
         plt.show()
-        
-    def in_target(self,x,y):
-        if x<=20 and self.maze==True:
-            self.target = True
-        else:
-            self.target = False
-                
         
     def get_firing_rate(self, sigma = 5):
         if self.beta == self.pickup:
@@ -97,6 +91,41 @@ class Rat:
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
         
         #Initialize Q-values???
+        
+    def run(self,nr_steps=10,nr_runs=1):
+        self.trajectory = np.zeros((nr_steps,2))
+        
+    def run_trial(self):
+        """
+        Run a single trial on the gridworld until the agent reaches the reward position.
+        Return the time it takes to get there.
+        """
+        # Initialize the latency (time to reach the target) for this trial
+        latency = 0.
+            
+        # Choose a random initial position and make sure that it is not in the wall.
+        # Needed here:
+        # self.x_position, self.y_position, self._is_wall
+        self.x_position = random.randint(0,self.N)
+        self.y_position = random.randint(0,self.N)    
+        while self._is_wall(self.x_position,self.y_position):
+            self.x_position = random.randint(0,self.N)
+            self.y_position = random.randint(0,self.N) 
+        
+        # Run the trial by choosing an action and repeatedly applying SARSA
+        # until the reward has been reached.
+        # Needed here:
+        # self._choose_action, self._arrived,  self._update_state, self._update_Q
+        self._choose_action()
+        while self._arrived() == False:
+            self._update_state()
+            self._choose_action()
+            self._update_Q()
+            
+            latency += 1
+      
+        return latency
+
 
 
        
