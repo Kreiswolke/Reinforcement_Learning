@@ -35,8 +35,11 @@ class Rat:
         self.N_action = 4
         self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
-        
+
         self.init_run()
+
+        self.update_Q(self.w_0)        
+        
         
                 
     def in_maze(self,x,y):
@@ -73,13 +76,12 @@ class Rat:
         plt.ylim(0,60)
         plt.plot([20,20],[50,60],'b')
         
-        for i in range(self.trajectory.shape[1]-1):
-            plt.plot([self.trajectory[0,i],self.trajectory[0,i+1]], \
-            [self.trajectory[1,i],self.trajectory[1,i+1]],'r-o', \
-             alpha = 1-float(i)/(self.trajectory.shape[1]-1))
+       # for i in range(self.trajectory.shape[1]-1):
+        #    plt.plot([self.trajectory[0,i],self.trajectory[0,i+1]], \
+         #   [self.trajectory[1,i],self.trajectory[1,i+1]],'r-o', \
+          #   color = 1-float(i)/(self.trajectory.shape[1]-1))
         
-        #plt.plot(self.trajectory[0,:],self.trajectory[1,:],'o', \
-        #     color = np.linspace(0,10, self.trajectory.shape[1]), alpha = 0.2)
+        plt.plot(self.trajectory[0,:],self.trajectory[1,:])
         plt.show()
         
     def update_firing_rate(self, sigma = 5):
@@ -130,11 +132,13 @@ class Rat:
         self.latencies = np.zeros(nr_steps)
         
         for _ in range(nr_runs):
-            self.init_run()
-            latencies = self.learn_run(nr_steps=nr_steps)
-            self.latencies += latencies/nr_runs
+             self.init_run()
+             
+             latencies = self.learn_run(nr_steps=nr_steps)
+             #print(latencies)
+             self.latencies += latencies/nr_runs
             
-    def learn_run(self,nr_steps=10):
+    def learn_run(self, nr_steps=10):
         for _ in range(nr_steps):
             # run a trial and store the time it takes to the target
             latency = self.run_trial()
@@ -155,25 +159,68 @@ class Rat:
         # Needed here:
         # self._choose_action, self._arrived,  self._update_state, self._update_Q
         self.choose_action()
+        #r_t+1
+        self.update_reward()
+
         count = 0
         while self.target == False:
-        #for i in range(10):
-            self.old_position = self.rat_position
-            self.trajectory = np.c_[self.trajectory,self.rat_position]
-            # check if rat is in target, pickup area 
-            self.update_position()
-            self.in_maze(self.rat_position[0], self.rat_position[1])
-            self.in_target(self.rat_position[0], self.rat_position[1])
-            self.in_pickup(self.rat_position[0], self.rat_position[1])
+            #Update Trajectory
+            self.trajectory = np.c_[self.trajectory, self.rat_position]
             
-        
-            self.choose_action()
-            #self.update_position()
+        #for i in range(10):
+            self.old_position = np.copy(self.rat_position)
+            self.action_old = np.copy(self.action_idx)
+
+            
+            #s_t+1
+            self.rat_position = self.update_position()
+            #a_t+1
+            self.action_idx, self.action = self.choose_action()     
+            #r_t+1
             self.update_reward()
+            
+            
+            #update weights according to SARSA
+            w = self.sarsa()
+            
+            if isinstance(w,np.ndarray):
+                self.update_Q(w)
+            
+           # self.rat_position = self.update_position()
+            #_ , self.action_old = self.choose_action()
+            
+
+#########################
+            '''
+            
+            
+            
+            self.old_position = self.rat_position
+        
+                
+            self.trajectory = np.c_[self.trajectory, self.rat_position]
+            
+            #Get new rat position (based on previous SARSA)
+            self.choose_action()
+            self.rat_position = self.update_position()
+            
+            
+            A = np.copy(self.rat_position)
+            
+                        
+            #Generate next state and acion (t+1)
+            self.rat_position = self.update_position()
+            self.choose_action()
+            #Generate reward for state in t+1
+            self.update_reward()
+
+            self.rat_position = A
+
             
             w = self.sarsa()
             if isinstance(w,np.ndarray):
                 self.update_Q(w)
+             '''   
                         
             latency += 1
             count += 1
@@ -221,34 +268,39 @@ class Rat:
         self.Q = np.dot(w.T,self.rates)
 
     def choose_action(self):
-        self.action_old = np.copy(self.action_idx)
-        
+        #returns self.action_idx and self.action
         if random.random()<(1-self.epsilon):
-            self.action_idx = np.argmax(self.Q)
-            self.action = self.action_arr[self.action_idx]
+           # self.action_idx = np.argmax(self.Q)
+            #self.action = self.action_arr[self.action_idx]
+            return np.argmax(self.Q), self.action_arr[self.action_idx]
         else:
-            self.action_idx = random.randint(0,self.N_action-1)
-            self.action = self.action_arr[self.action_idx]
+            #self.action_idx = random.randint(0,self.N_action-1)
+            #self.action = self.action_arr[self.action_idx]
+            return random.randint(0,self.N_action-1), self.action_arr[self.action_idx]
+
 
         
 
             
-    def update_position(self):
-        self.old_position = np.copy(self.trajectory[:,-2])
+    def update_position(self):        
+        run_vector = np.array([np.cos(self.action), np.sin(self.action)])\
+                    /(np.linalg.norm([np.cos(self.action), np.sin(self.action)]))
         
-        run_vector = np.array([np.cos(self.action), \
-                         np.sin(self.action)])
-                         
         self.rat_position += run_vector*self.get_velocity()
         
         self.in_maze(self.rat_position[0], self.rat_position[1])
+        self.in_target(self.rat_position[0], self.rat_position[1])
+        self.in_pickup(self.rat_position[0], self.rat_position[1])
         
+
         if self.maze == False:
             self.update_reward()
             self.rat_position = np.copy(self.old_position)
+            self.old_position = np.copy(self.trajectory[:,-2])
+            return self.rat_position 
             
-        
-        
+        else:
+            return self.rat_position 
             
     def reset(self):
         """
@@ -261,5 +313,8 @@ class Rat:
         self.target = False
         self.pickup = False
         self.latency_list = []
+        
+    def get_weights(self):
+        return self.w_0, self.w_1
 
        
