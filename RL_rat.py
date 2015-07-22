@@ -175,7 +175,7 @@ class Rat:
             #s_t+1
             self.rat_position = self.update_position()
             #a_t+1
-            self.action_idx, self.action = self.choose_action()     
+            self.choose_action()     
             #r_t+1
             self.update_reward()
             
@@ -186,11 +186,10 @@ class Rat:
             if isinstance(w,np.ndarray):
                 self.update_Q(w)
                         
-            if (latency%100)==0:
-                print(self.pickup,self.beta)
-            #print(latency)
+            #if (latency%10000)==0:
+             #   print(self.pickup)
+            
             latency += 1
-        print(self.reward)
       
         return latency
         
@@ -208,10 +207,10 @@ class Rat:
             self.e_0 *= self.gamma * self.lmbd
             self.e_0[min_idx_old,self.action_old] += 1.
             
-            self.w_0[min_idx,self.action_idx] += \
+            self.w_0 += \
                    eta*(self.reward+gamma* \
                    self.w_0[min_idx,self.action_idx]- \
-                   self.w_0[min_idx_old,self.action_old])#*self.e_0[min_idx,self.action_idx]
+                   self.w_0[min_idx_old,self.action_old])*self.e_0
                    
             #self.w_0 /= np.linalg.norm(self.w_0) 
 
@@ -226,10 +225,10 @@ class Rat:
             self.e_1 *= self.gamma * self.lmbd
             self.e_1[min_idx_old,self.action_old] += 1.
             
-            self.w_1[min_idx,self.action_idx] += \
+            self.w_1 += \
                    eta*(self.reward+gamma* \
                    self.w_1[min_idx,self.action_idx]- \
-                   self.w_1[min_idx_old,self.action_old])#*self.e_1[min_idx,self.action_idx]
+                   self.w_1[min_idx_old,self.action_old])*self.e_1
                    
             #self.w_1 /= np.linalg.norm(self.w_1) 
 
@@ -251,16 +250,13 @@ class Rat:
     def choose_action(self):
         #returns self.action_idx and self.action
         if random.random()<(1-self.epsilon):
-           # self.action_idx = np.argmax(self.Q)
-            #self.action = self.action_arr[self.action_idx]
-            return np.argmax(self.Q), self.action_arr[self.action_idx]
+            self.action_idx = np.argmax(self.Q)
+            self.action = self.action_arr[self.action_idx]
+            #return np.argmax(self.Q), self.action_arr[self.action_idx]
         else:
-            #self.action_idx = random.randint(0,self.N_action-1)
-            #self.action = self.action_arr[self.action_idx]
-            return random.randint(0,self.N_action-1), self.action_arr[self.action_idx]
-
-
-        
+            self.action_idx = random.randint(0,self.N_action-1)
+            self.action = self.action_arr[self.action_idx]
+            #return random.randint(0,self.N_action-1), self.action_arr[self.action_idx]
 
             
     def update_position(self):        
