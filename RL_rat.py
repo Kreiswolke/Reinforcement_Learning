@@ -31,6 +31,9 @@ class Rat:
         self.beta = 0
         
         self.epsilon = 0.9
+        
+        self.gamma = 0.95
+        self.lmbd = 0.95
 
         self.N_action = 4
         self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
@@ -76,18 +79,11 @@ class Rat:
         plt.ylim(0,60)
         plt.plot([20,20],[50,60],'b')
         
-       # for i in range(self.trajectory.shape[1]-1):
-        #    plt.plot([self.trajectory[0,i],self.trajectory[0,i+1]], \
-         #   [self.trajectory[1,i],self.trajectory[1,i+1]],'r-o', \
-          #   color = 1-float(i)/(self.trajectory.shape[1]-1))
-        
         plt.plot(self.trajectory[0,:],self.trajectory[1,:])
         plt.show()
         
     def update_firing_rate(self, sigma = 5):
         if self.beta == self.pickup:
-            #np.exp(-((self.cell_centers[0,:]- self.position[0])**2 \
-            #+ self.cell_centers[1,:]- self.position[1])**2)/(2*sigma**2))
             for j in range(self.cell_centers.shape[0]):
                 self.rates[j] = np.exp(-((np.linalg.norm(self.rat_position - \
                 self.cell_centers[j,:])) ** 2) / (2 * (sigma ** 2)))
@@ -103,10 +99,6 @@ class Rat:
         #Initialize Output layer
         self.N_action = 4
         self.output = np.zeros(self.N_action)
-        
-        #Initialize populations
-        #self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
-        #self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
         
         #Initialize Q-values
         self.Q = np.zeros((self.N_action))
@@ -127,24 +119,27 @@ class Rat:
         
         self.reward = 0
         
+        if self.epsilon>=0.1:
+            self.epsilon *= 0.999
         
-    def run(self,nr_steps=10,nr_runs=1):
-        self.latencies = np.zeros(nr_steps)
         
-        for _ in range(nr_runs):
+    def run(self,nr_runs=1):
+        self.latencies = np.zeros(nr_runs)
+        
+        for i in range(nr_runs):
              self.init_run()
+             print(i)
              
-             latencies = self.learn_run(nr_steps=nr_steps)
-             #print(latencies)
-             self.latencies += latencies/nr_runs
+             latency = self.run_trial()
+             self.latencies[i] = latency
             
-    def learn_run(self, nr_steps=10):
-        for _ in range(nr_steps):
-            # run a trial and store the time it takes to the target
-            latency = self.run_trial()
-            self.latency_list.append(latency)
-
-        return np.array(self.latency_list)
+    def plot_latencies(self):
+        plt.plot(self.latencies)
+        plt.xlabel('Number of trial')
+        plt.ylabel('Latency')
+        plt.title('Latencies across trials')
+        plt.show()
+        
         
     def run_trial(self):
         """
@@ -162,12 +157,10 @@ class Rat:
         #r_t+1
         self.update_reward()
 
-        count = 0
         while self.target == False:
             #Update Trajectory
             self.trajectory = np.c_[self.trajectory, self.rat_position]
             
-        #for i in range(10):
             self.old_position = np.copy(self.rat_position)
             self.action_old = np.copy(self.action_idx)
 
@@ -185,48 +178,8 @@ class Rat:
             
             if isinstance(w,np.ndarray):
                 self.update_Q(w)
-            
-           # self.rat_position = self.update_position()
-            #_ , self.action_old = self.choose_action()
-            
-
-#########################
-            '''
-            
-            
-            
-            self.old_position = self.rat_position
-        
-                
-            self.trajectory = np.c_[self.trajectory, self.rat_position]
-            
-            #Get new rat position (based on previous SARSA)
-            self.choose_action()
-            self.rat_position = self.update_position()
-            
-            
-            A = np.copy(self.rat_position)
-            
-                        
-            #Generate next state and acion (t+1)
-            self.rat_position = self.update_position()
-            self.choose_action()
-            #Generate reward for state in t+1
-            self.update_reward()
-
-            self.rat_position = A
-
-            
-            w = self.sarsa()
-            if isinstance(w,np.ndarray):
-                self.update_Q(w)
-             '''   
                         
             latency += 1
-            count += 1
-            if self.epsilon >= 0.2:
-                self.epsilon *= 0.9999
-
       
         return latency
         
