@@ -11,7 +11,7 @@ import random
 
 class Rat:
 
-    def __init__(self):
+    def __init__(self,N_action=4):
         self.maze = False
         self.pickup = False
         self.target = False
@@ -29,16 +29,16 @@ class Rat:
         
         self.rates = np.zeros(self.cell_centers.shape[0])
         
-        self.epsilon = 0.8
+        self.epsilon = 0.9
         
         self.gamma = 0.95
         self.lmbd = 0.95
 
-        self.N_action = 4
+        self.N_action = N_action
         self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
-        self.w_0 /= np.linalg.norm(self.w_0) 
+        #self.w_0 /= np.linalg.norm(self.w_0) 
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))        
-        self.w_1 /= np.linalg.norm(self.w_1) 
+        #self.w_1 /= np.linalg.norm(self.w_1) 
 
 
         self.init_run()
@@ -60,6 +60,7 @@ class Rat:
         if self.pickup==False:
             if x>90 and self.maze==True:
                 self.pickup = True
+                self.beta = 1
             else:
                 self.pickup = False
             
@@ -98,7 +99,6 @@ class Rat:
             
     def init_run(self):
         #Initialize Output layer
-        self.N_action = 4
         self.output = np.zeros(self.N_action)
         
         #Initialize Q-values
@@ -123,8 +123,8 @@ class Rat:
         self.beta = 0
         
         # eligibility trace
-        self.e_0 = np.zeros((64,N_action))
-        self.e_1 = np.zeros((64,N_action))        
+        self.e_0 = np.zeros((64,self.N_action))
+        self.e_1 = np.zeros((64,self.N_action))        
         
         if self.epsilon>=0.1:
             self.epsilon *= 0.9
@@ -135,7 +135,7 @@ class Rat:
         
         for i in range(nr_runs):
              self.init_run()
-             print(i)
+             print('Run number: ',i+1)
              
              latency = self.run_trial()
              self.latencies[i] = latency
@@ -190,6 +190,8 @@ class Rat:
              #   print(self.pickup)
             
             latency += 1
+            
+        self.trajectory = np.c_[self.trajectory, self.rat_position]
       
         return latency
         
@@ -218,9 +220,7 @@ class Rat:
             return self.w_0
             
         elif self.pickup == True and self.target == False:
-            
-            self.beta = 1
-            
+                        
             # update the eligibility trace
             self.e_1 *= self.gamma * self.lmbd
             self.e_1[min_idx_old,self.action_old] += 1.
@@ -284,7 +284,6 @@ class Rat:
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
         self.target = False
         self.pickup = False
-        self.latency_list = []
         
     def get_weights(self):
         return self.w_0, self.w_1
