@@ -28,16 +28,18 @@ class Rat:
         self.cell_centers[54:64,1] = np.arange(2.5,50,5)
         
         self.rates = np.zeros(self.cell_centers.shape[0])
-        self.beta = 0
         
-        self.epsilon = 0.9
+        self.epsilon = 0.8
         
         self.gamma = 0.95
         self.lmbd = 0.95
 
         self.N_action = 4
         self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
-        self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
+        self.w_0 /= np.linalg.norm(self.w_0) 
+        self.w_1 = np.random.normal(0,0.1, (64,self.N_action))        
+        self.w_1 /= np.linalg.norm(self.w_1) 
+
 
         self.init_run()
 
@@ -87,7 +89,6 @@ class Rat:
             for j in range(self.cell_centers.shape[0]):
                 self.rates[j] = np.exp(-((np.linalg.norm(self.rat_position - \
                 self.cell_centers[j,:])) ** 2) / (2 * (sigma ** 2)))
-
         else:
             self.rates = np.zeros_like(self.rates)
             
@@ -119,8 +120,14 @@ class Rat:
         
         self.reward = 0
         
+        self.beta = 0
+        
+        # eligibility trace
+        self.e_0 = np.zeros((64,N_action))
+        self.e_1 = np.zeros((64,N_action))        
+        
         if self.epsilon>=0.1:
-            self.epsilon *= 0.999
+            self.epsilon *= 0.9
         
         
     def run(self,nr_runs=1):
@@ -179,7 +186,11 @@ class Rat:
             if isinstance(w,np.ndarray):
                 self.update_Q(w)
                         
+            if (latency%100)==0:
+                print(self.pickup,self.beta)
+            #print(latency)
             latency += 1
+        print(self.reward)
       
         return latency
         
@@ -189,32 +200,49 @@ class Rat:
                   self.rat_position,axis=1))
         min_idx_old = np.argmin(np.linalg.norm(self.cell_centers- \
                   self.old_position,axis=1))
-                  
+        
         # choose population
         if self.pickup == False:
+                        
+            # update the eligibility trace
+            self.e_0 *= self.gamma * self.lmbd
+            self.e_0[min_idx_old,self.action_old] += 1.
             
             self.w_0[min_idx,self.action_idx] += \
                    eta*(self.reward+gamma* \
                    self.w_0[min_idx,self.action_idx]- \
-                   self.w_0[min_idx_old,self.action_old])
+                   self.w_0[min_idx_old,self.action_old])#*self.e_0[min_idx,self.action_idx]
+                   
+            #self.w_0 /= np.linalg.norm(self.w_0) 
+
                    
             return self.w_0
             
         elif self.pickup == True and self.target == False:
             
+            self.beta = 1
+            
+            # update the eligibility trace
+            self.e_1 *= self.gamma * self.lmbd
+            self.e_1[min_idx_old,self.action_old] += 1.
+            
             self.w_1[min_idx,self.action_idx] += \
                    eta*(self.reward+gamma* \
                    self.w_1[min_idx,self.action_idx]- \
-                   self.w_1[min_idx_old,self.action_old]) 
+                   self.w_1[min_idx_old,self.action_old])#*self.e_1[min_idx,self.action_idx]
                    
+            #self.w_1 /= np.linalg.norm(self.w_1) 
+
             return self.w_1
 
 
     def update_reward(self):
         if self.target==True and self.pickup==True:
-            self.reward += 20
+            self.reward = 20
         elif self.maze==False:
-            self.reward -= 1
+            self.reward = -1
+        else:
+            self.reward = 0
         
     def update_Q(self,w):
         self.update_firing_rate()
@@ -256,11 +284,6 @@ class Rat:
             return self.rat_position 
             
     def reset(self):
-        """
-        Reset weights (and the latency_list).
-        
-        Instant amnesia -  the agent forgets everything he has learned before    
-        """
         self.w_0 = np.random.normal(0,0.1, (64,self.N_action))
         self.w_1 = np.random.normal(0,0.1, (64,self.N_action))
         self.target = False
