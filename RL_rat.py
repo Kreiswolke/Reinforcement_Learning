@@ -9,6 +9,7 @@ Models of Higher Brain Function - Reinforcement Learning Project
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+plt.style.use('ggplot')
 
 class Rat:
 
@@ -36,7 +37,7 @@ class Rat:
         self.cell_centers[54:64,1] = np.arange(2.5,50,5)
         
         # initialize some parameters
-        self.epsilon = 0.9
+        self.epsilon = 1
         self.gamma = 0.95
         self.lmbd = lmbd
 
@@ -55,6 +56,9 @@ class Rat:
 
         # set parameters for first run
         self._init_run()
+        
+        # list of all paths the rat takes
+        self.trajectory_list_over_rats = []
      
      
     def _init_run(self):
@@ -89,14 +93,14 @@ class Rat:
         self.beta = 0
         
         # epsilon decays with every trial the rat runs
-        if self.epsilon>=0.1:
-            self.epsilon *= 0.8
+        if self.epsilon>=(1./9):
+            self.epsilon *= 0.9
             
         self._update_Q(self.w_0)  
  
        
     def run(self,nr_rats=1,nr_runs=1):
-        '''Is called by the user in order to let the rat run
+        '''is called by the user in order to let the rat run
         
         :param nr_rats: specifies how many rats should run
                         default: 1
@@ -113,6 +117,9 @@ class Rat:
         
         # for every rat and every trial
         for i in range(nr_rats):
+
+            self.trajectory_list_over_runs = []            
+            
             for j in range(nr_runs):
                 
                  # initialize parameters
@@ -123,6 +130,9 @@ class Rat:
                  latency = self._run_trial()
                  self.latencies[i][j] = latency
                  
+                 self.trajectory_list_over_runs.append(self.trajectory)
+                 
+            self.trajectory_list_over_rats.append(self.trajectory_list_over_runs)
             if nr_rats!=1:
                 self.reset()
                 
@@ -289,14 +299,14 @@ class Rat:
             self.target = False         
   
 
-    def _sarsa(self,gamma=0.95,eta=0.1):
+    def _sarsa(self,gamma=0.95,eta=0.01):
         '''implements the SARSA update rule in order to update the weights
         
         :param gamma: reward discount factor, should be between 0 and 1
                       default: 0.95
                       
         :param eta: learning rate, should be small (<<1)
-                    default: 0.1
+                    default: 0.05
                     
         :return: updated weights'''
         
@@ -368,7 +378,7 @@ class Rat:
         self.e_1 = np.zeros((64,self.N_action)) 
         
         # reset epsilon
-        self.epsilon = 0.9
+        self.epsilon = 1
         
         
     def plot_maze(self):
@@ -392,9 +402,10 @@ class Rat:
     def plot_latencies(self):
         '''plot the latencies across trials averaged over the rats'''
         
-        plt.plot(np.mean(self.latencies,axis=0))
+        plt.plot(np.arange(1,self.nr_runs+1),np.mean(self.latencies,axis=0))
         plt.xlabel('Number of trial')
         plt.ylabel('Averaged latency')
-        plt.title('Latencies across %s trials averaged over %s rats'%(self.nr_runs,self.nr_rats))
+        plt.title('Latencies across %s trials averaged over %s rats ($\lambda$=%s)'\
+                 %(self.nr_runs,self.nr_rats,self.lmbd))
         plt.show()
        
