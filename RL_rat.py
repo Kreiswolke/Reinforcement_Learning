@@ -37,7 +37,7 @@ class Rat:
         self.cell_centers[54:64,1] = np.arange(2.5,50,5)
         
         # initialize some parameters
-        self.epsilon = 1
+        self.epsilon = 1.
         self.gamma = 0.95
         self.lmbd = lmbd
 
@@ -94,7 +94,7 @@ class Rat:
         
         # epsilon decays with every trial the rat runs
         if self.epsilon>=(1./9):
-            self.epsilon *= 0.9
+            self.epsilon *= 0.8
             
         self._update_Q(self.w_0)  
  
@@ -299,7 +299,7 @@ class Rat:
             self.target = False         
   
 
-    def _sarsa(self,gamma=0.95,eta=0.01):
+    def _sarsa(self,gamma=0.95,eta=0.03):
         '''implements the SARSA update rule in order to update the weights
         
         :param gamma: reward discount factor, should be between 0 and 1
@@ -311,38 +311,60 @@ class Rat:
         :return: updated weights'''
         
         # find closest place cell center from current rat position
+        # using K closest Place cells
+        K = 4
+                    
+        
+        min_idx = np.argsort(np.linalg.norm(self.cell_centers- \
+                  self.rat_position,axis=1))[:K]
+        # and from old rat position
+        min_idx_old = np.argsort(np.linalg.norm(self.cell_centers- \
+                  self.old_position,axis=1))[:K]
+         
+        '''         
         min_idx = np.argmin(np.linalg.norm(self.cell_centers- \
                   self.rat_position,axis=1))
         # and from old rat position
         min_idx_old = np.argmin(np.linalg.norm(self.cell_centers- \
                   self.old_position,axis=1))
+        '''           
+                  
+
         
+                    
+
         # choose population
         # if pickup is False, use population 0
+
+
         if self.pickup == False:
-                        
-            # update the eligibility trace
-            self.e_0 *= self.gamma * self.lmbd
-            self.e_0[min_idx_old,self.action_old] += 1.
             
-            # update weights
-            self.w_0 += eta*(self.reward+gamma*self.w_0[min_idx,self.action_idx]- \
-                        self.w_0[min_idx_old,self.action_old])*self.e_0
-                   
+            for minidx, minidxold in zip(min_idx, min_idx_old):
+                # update the eligibility trace
+                self.e_0 *= self.gamma * self.lmbd
+                self.e_0[min_idx_old,self.action_old] += 1.
+                
+                # update weights
+                self.w_0 += eta*(self.reward+gamma*self.w_0[minidx,self.action_idx]- \
+                            self.w_0[minidxold,self.action_old])*self.e_0
+                       
             return self.w_0
             
         # if pickup is True and the target is not reached yet, population 1 is 
         # activated
         elif self.pickup == True and self.target == False:
-                        
-            # update the eligibility trace
-            self.e_1 *= self.gamma * self.lmbd
-            self.e_1[min_idx_old,self.action_old] += 1.
-            
-            # update weights
-            self.w_1 += eta*(self.reward+gamma*self.w_1[min_idx,self.action_idx]- \
-                        self.w_1[min_idx_old,self.action_old])*self.e_1
-                   
+        
+            for minidx, minidxold in zip(min_idx, min_idx_old):
+    
+                            
+                # update the eligibility trace
+                self.e_1 *= self.gamma * self.lmbd
+                self.e_1[min_idx_old,self.action_old] += 1.
+                
+                # update weights
+                self.w_1 += eta*(self.reward+gamma*self.w_1[minidx,self.action_idx]- \
+                            self.w_1[minidxold,self.action_old])*self.e_1
+                       
             return self.w_1
 
         
